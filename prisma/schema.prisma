@@ -48,15 +48,15 @@ model Session {
 }
 
 model User {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   name           String?
-  email          String?      @unique
+  email          String?       @unique
   emailVerified  DateTime?
   image          String?
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
   accounts       Account[]
   sessions       Session[]
+  Organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
 }
 
 model VerificationToken {

@@ -25,6 +25,15 @@ type CreateContextOptions = {
   prisma?: PrismaClient;
 };
 
+// custom: declare type for context
+export type Context = CreateContextOptions & {
+  prisma: PrismaClient<
+    Prisma.PrismaClientOptions,
+    never,
+    Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
+  >;
+};
+
 /**
  * This helper generates the "internals" for a tRPC context. If you need to use it, you can export
  * it from here.
@@ -35,6 +44,7 @@ type CreateContextOptions = {
  *
  * @see https://create.t3.gg/en/usage/trpc#-serverapitrpcts
  */
+// custom: exported for testing
 export const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     session: opts.session,
