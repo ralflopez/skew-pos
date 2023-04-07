@@ -10,18 +10,13 @@ import {
   PRODUCT_VARIANT_PRODUCT_NOT_FOUND,
 } from "~/server/exceptions/message";
 
-describe("addVariant", () => {
-  beforeEach(async () => {
-    await prisma.product.deleteMany();
-    await prisma.productType.deleteMany();
-    await prisma.organization.deleteMany();
-  });
+const clearDatabase = async () => {
+  await prisma.organization.deleteMany();
+};
 
-  afterEach(async () => {
-    await prisma.product.deleteMany();
-    await prisma.productType.deleteMany();
-    await prisma.organization.deleteMany();
-  });
+describe("addVariant", () => {
+  beforeEach(async () => await clearDatabase());
+  afterAll(async () => await clearDatabase());
 
   it("should throw if user is not logged in", async () => {
     const caller = appRouter.createCaller({

@@ -69,11 +69,11 @@ export const deleteProductVariant = async (
   if (!productVariant) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "",
+      message: PRODUCT_VARIANT_PRODUCT_NOT_FOUND,
     });
   }
 
-  return await ctx.prisma.product.delete({
+  return await ctx.prisma.productVariant.delete({
     where: { id: productVariant.id },
   });
 };
