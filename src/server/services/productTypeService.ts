@@ -1,4 +1,4 @@
-import { Prisma, type ProductType } from "@prisma/client";
+import { AttributeType, Prisma, type ProductType } from "@prisma/client";
 import { type Context } from "../api/trpc";
 import { TRPCError } from "@trpc/server";
 import {
@@ -7,6 +7,12 @@ import {
   type DeleteProductTypeInput,
 } from "~/schema/productTypeInput";
 import { getOrganizationId } from "./utils/contextHelpers";
+import { type AddProductVariantInput } from "~/schema/productVariantInput";
+import {
+  PRODUCT_TYPE_ATTRIBUTE_MANY_COLUMNS_DEFINED,
+  PRODUCT_VARIANT_DETAIL_COLUMN_VALUE_NOT_FOUND,
+  PRODUCT_TYPE_INVALID_ATTRIBUTES,
+} from "../exceptions/message";
 
 export const addProductType = async (
   ctx: Context,
@@ -110,4 +116,57 @@ export const deleteProductType = async (
 ) => {
   const organizationId = getOrganizationId(ctx);
   return ctx.prisma.productType.findFirst({ where: { id, organizationId } });
+};
+
+export const validateProductTypeAttributes = async (
+  ctx: Context,
+  productTypeId: string,
+  details: AddProductVariantInput["details"]
+) => {
+  const attributes = await ctx.prisma.productTypeAttribute.findMany({
+    where: {
+      productTypeId,
+    },
+  });
+
+  const validAttributeIds = attributes.map((a) => a.id);
+  const hasInvalidAttributes =
+    details.filter((d) => !validAttributeIds.includes(d.attributeId)).length >
+    0;
+  if (hasInvalidAttributes) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: PRODUCT_TYPE_INVALID_ATTRIBUTES,
+    });
+  }
+
+  const hasValueInAllColumns =
+    details.filter((d) => {
+      const attribute = attributes.find((a) => a.id === d.attributeId);
+      if (!attribute) return true;
+      return d.valueNumber && d.valueText;
+    }).length > 0;
+
+  if (hasValueInAllColumns) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: PRODUCT_TYPE_ATTRIBUTE_MANY_COLUMNS_DEFINED,
+    });
+  }
+
+  const hasNoValueInCorrectColumn =
+    details.filter((d) => {
+      const attribute = attributes.find((a) => a.id === d.attributeId);
+      if (!attribute) return true;
+      if (attribute.type === AttributeType.NUMBER)
+        return !d.valueNumber && d.valueText;
+      else return d.valueNumber && !d.valueText;
+    }).length > 0;
+
+  if (hasNoValueInCorrectColumn) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: PRODUCT_VARIANT_DETAIL_COLUMN_VALUE_NOT_FOUND,
+    });
+  }
 };
