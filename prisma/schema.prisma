@@ -101,7 +101,7 @@ model Product {
   organizationId String
   productTypeId  String
   productType    ProductType      @relation(fields: [productTypeId], references: [id])
-  organization   Organization     @relation(fields: [organizationId], references: [id])
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   variants       ProductVariant[]
 }
 
@@ -119,7 +119,7 @@ model ProductVariantDetails {
   variantId   String
   variant     ProductVariant       @relation(fields: [variantId], references: [id], onDelete: Cascade)
   attributeId String
-  attribute   ProductTypeAttribute @relation(fields: [attributeId], references: [id])
+  attribute   ProductTypeAttribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
   valueNumber Float?
   valueText   String?
 
