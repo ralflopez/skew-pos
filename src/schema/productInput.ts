@@ -12,6 +12,16 @@ export type AddProductInferredInput = inferProcedureInput<
   AppRouter["product"]["add"]
 >;
 
+export const EditProductInputSchema = z.object({
+  brand: z.string().nonempty().optional(),
+  name: z.string().nonempty().optional(),
+  id: z.string().nonempty().optional(),
+});
+export type EditProductInput = z.infer<typeof EditProductInputSchema>;
+export type EditProductInferredInput = inferProcedureInput<
+  AppRouter["product"]["edit"]
+>;
+
 export const DeleteProductInputSchema = z.object({
   id: z.string(),
 });
