@@ -10,3 +10,5 @@ export const PRODUCT_ALREADY_EXISTS = "Product already exists";
 export const PRODUCT_NOT_FOUND = "Product not found";
 
 export const PRODUCT_VARIANT_NOT_FOUND = "Product not found";
+
+export const INVENTORY_LOG_INSUFFICIENT_STOCK = "Not enough items in stock";
