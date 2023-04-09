@@ -1,16 +1,15 @@
 import { InventoryLogActionType } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { type AddSaleInferredInput } from "~/schema/saleInput";
+import { randomUUID } from "crypto";
+import { type GetAllSaleInferredInput } from "~/schema/saleInput";
 import { appRouter } from "~/server/api/root";
 import { prisma } from "~/server/db";
-import { INVENTORY_LOG_INSUFFICIENT_STOCK } from "~/server/exceptions/message";
-import { randomUUID } from "crypto";
 
 const clearDatabase = async () => {
   await prisma.organization.deleteMany();
 };
 
-describe("addProduct", () => {
+describe("getAllSales", () => {
   beforeEach(async () => await clearDatabase());
   afterAll(async () => await clearDatabase());
 
@@ -20,18 +19,13 @@ describe("addProduct", () => {
       prisma,
     });
 
-    const input: AddSaleInferredInput = {
-      order: [
-        {
-          quantity: 1,
-          sku: "test-sku",
-          price: 1,
-        },
-      ],
+    const input: GetAllSaleInferredInput = {
+      limit: 10,
+      page: 1,
     };
 
     try {
-      await caller.sales.add(input);
+      await caller.sales.getAll(input);
       expect(true).toBe(false);
     } catch (e) {
       expect(e).toBeInstanceOf(TRPCError);
@@ -50,18 +44,13 @@ describe("addProduct", () => {
       prisma,
     });
 
-    const input: AddSaleInferredInput = {
-      order: [
-        {
-          quantity: 1,
-          sku: "test-sku",
-          price: 1,
-        },
-      ],
+    const input: GetAllSaleInferredInput = {
+      limit: 10,
+      page: 1,
     };
 
     try {
-      await caller.sales.add(input);
+      await caller.sales.getAll(input);
       expect(true).toBe(false);
     } catch (e) {
       expect(e).toBeInstanceOf(TRPCError);
@@ -69,14 +58,11 @@ describe("addProduct", () => {
     }
   });
 
-  it("should throw if at least one product have no sufficient stock", async () => {
-    const createdAt = new Date();
-    const transactionId = randomUUID().toString();
-
+  it("should paginate", async () => {
     const organization = await prisma.organization.create({
       data: {
-        name: "test-organization",
         masterPin: "1234",
+        name: "Test Organization",
       },
     });
 
@@ -91,55 +77,89 @@ describe("addProduct", () => {
       data: {
         brand: "test-brand",
         name: "test-name",
-        organizationId: organization.id,
         productTypeId: productType.id,
+        organizationId: organization.id,
       },
     });
 
     const productVariant = await prisma.productVariant.create({
       data: {
         price: 1,
-        sku: "test-sku",
         productId: product.id,
+        sku: "test-sku",
       },
     });
 
     const productVariant2 = await prisma.productVariant.create({
       data: {
         price: 1,
-        sku: "test-sku2",
         productId: product.id,
+        sku: "test-sku2",
       },
     });
+
+    const transactionId = randomUUID();
+    const transactionId2 = randomUUID();
+    const transactionId3 = randomUUID();
+    const transactionId4 = randomUUID();
 
     await prisma.inventoryLog.createMany({
       data: [
         {
           action: InventoryLogActionType.INCOMING,
-          quantity: 1,
           organizationId: organization.id,
           price: 1,
           productVariantSku: productVariant.sku,
-          transactionId,
-          createdAt,
-        },
-        {
-          action: InventoryLogActionType.OUTGOING,
-          quantity: 1,
-          organizationId: organization.id,
-          price: 1,
-          productVariantSku: productVariant.sku,
-          transactionId,
-          createdAt,
+          quantity: 10,
+          transactionId: randomUUID(),
         },
         {
           action: InventoryLogActionType.INCOMING,
-          quantity: 10,
           organizationId: organization.id,
           price: 1,
           productVariantSku: productVariant2.sku,
-          transactionId,
-          createdAt,
+          quantity: 10,
+          transactionId: randomUUID(),
+        },
+        {
+          action: InventoryLogActionType.OUTGOING,
+          organizationId: organization.id,
+          price: 1,
+          productVariantSku: productVariant.sku,
+          quantity: 1,
+          transactionId: transactionId,
+        },
+        {
+          action: InventoryLogActionType.OUTGOING,
+          organizationId: organization.id,
+          price: 1,
+          productVariantSku: productVariant2.sku,
+          quantity: 1,
+          transactionId: transactionId,
+        },
+        {
+          action: InventoryLogActionType.OUTGOING,
+          organizationId: organization.id,
+          price: 1,
+          productVariantSku: productVariant2.sku,
+          quantity: 1,
+          transactionId: transactionId2,
+        },
+        {
+          action: InventoryLogActionType.OUTGOING,
+          organizationId: organization.id,
+          price: 1,
+          productVariantSku: productVariant2.sku,
+          quantity: 1,
+          transactionId: transactionId3,
+        },
+        {
+          action: InventoryLogActionType.OUTGOING,
+          organizationId: organization.id,
+          price: 1,
+          productVariantSku: productVariant2.sku,
+          quantity: 1,
+          transactionId: transactionId4,
         },
       ],
     });
@@ -155,39 +175,31 @@ describe("addProduct", () => {
       prisma,
     });
 
-    const input: AddSaleInferredInput = {
-      order: [
-        {
-          quantity: 1,
-          sku: productVariant.sku,
-          price: 1,
-        },
-        {
-          quantity: 1,
-          sku: productVariant2.sku,
-          price: 1,
-        },
-      ],
+    const input: GetAllSaleInferredInput = {
+      limit: 2,
+      page: 1,
     };
 
-    try {
-      await caller.sales.add(input);
-      expect(true).toBe(false);
-    } catch (e) {
-      expect(e).toBeInstanceOf(TRPCError);
-      expect(e).toHaveProperty("code", "BAD_REQUEST");
-      expect(e).toHaveProperty("message", INVENTORY_LOG_INSUFFICIENT_STOCK);
-    }
+    const result = await caller.sales.getAll(input);
+    expect(result.length).toBe(2);
+
+    const input2: GetAllSaleInferredInput = {
+      limit: 2,
+      page: 2,
+    };
+
+    const result2 = await caller.sales.getAll(input2);
+    expect(result2.length).toBe(2);
+
+    expect(result[0]?.transactionId).not.toBe(result2[0]?.transactionId);
+    expect(result[1]?.transactionId).not.toBe(result2[1]?.transactionId);
   });
 
-  it("should return the count of the type of products added to the inventory log", async () => {
-    const createdAt = new Date();
-    const transactionId = randomUUID().toString();
-
+  it("should return the total value of the sale when getting", async () => {
     const organization = await prisma.organization.create({
       data: {
-        name: "test-organization",
         masterPin: "1234",
+        name: "Test Organization",
       },
     });
 
@@ -202,55 +214,78 @@ describe("addProduct", () => {
       data: {
         brand: "test-brand",
         name: "test-name",
-        organizationId: organization.id,
         productTypeId: productType.id,
+        organizationId: organization.id,
       },
     });
 
     const productVariant = await prisma.productVariant.create({
       data: {
         price: 1,
-        sku: "test-sku",
         productId: product.id,
+        sku: "test-sku",
       },
     });
 
     const productVariant2 = await prisma.productVariant.create({
       data: {
         price: 1,
-        sku: "test-sku2",
         productId: product.id,
+        sku: "test-sku2",
       },
     });
+
+    const productVariant3 = await prisma.productVariant.create({
+      data: {
+        price: 1,
+        productId: product.id,
+        sku: "test-sku3",
+      },
+    });
+
+    const transactionId = randomUUID();
 
     await prisma.inventoryLog.createMany({
       data: [
         {
           action: InventoryLogActionType.INCOMING,
+          organizationId: organization.id,
+          price: 1,
+          productVariantSku: productVariant.sku,
           quantity: 10,
-          organizationId: organization.id,
-          price: 1,
-          productVariantSku: productVariant.sku,
-          transactionId,
-          createdAt,
-        },
-        {
-          action: InventoryLogActionType.OUTGOING,
-          quantity: 1,
-          organizationId: organization.id,
-          price: 1,
-          productVariantSku: productVariant.sku,
-          transactionId,
-          createdAt,
+          transactionId: randomUUID(),
         },
         {
           action: InventoryLogActionType.INCOMING,
-          quantity: 10,
           organizationId: organization.id,
           price: 1,
           productVariantSku: productVariant2.sku,
-          transactionId,
-          createdAt,
+          quantity: 10,
+          transactionId: randomUUID(),
+        },
+        {
+          action: InventoryLogActionType.OUTGOING,
+          organizationId: organization.id,
+          price: 125,
+          productVariantSku: productVariant.sku,
+          quantity: 1,
+          transactionId: transactionId,
+        },
+        {
+          action: InventoryLogActionType.OUTGOING,
+          organizationId: organization.id,
+          price: 654,
+          productVariantSku: productVariant2.sku,
+          quantity: 1,
+          transactionId: transactionId,
+        },
+        {
+          action: InventoryLogActionType.OUTGOING,
+          organizationId: organization.id,
+          price: 8,
+          productVariantSku: productVariant3.sku,
+          quantity: 1,
+          transactionId: transactionId,
         },
       ],
     });
@@ -266,22 +301,12 @@ describe("addProduct", () => {
       prisma,
     });
 
-    const input: AddSaleInferredInput = {
-      order: [
-        {
-          quantity: 1,
-          sku: productVariant.sku,
-          price: 1,
-        },
-        {
-          quantity: 1,
-          sku: productVariant2.sku,
-          price: 1,
-        },
-      ],
+    const input: GetAllSaleInferredInput = {
+      limit: 2,
+      page: 1,
     };
 
-    const result = await caller.sales.add(input);
-    expect(result?.count).toEqual(2);
+    const result = await caller.sales.getAll(input);
+    expect(result[0]?.total).toBe(787);
   });
 });

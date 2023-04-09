@@ -106,12 +106,15 @@ model Product {
 }
 
 model ProductVariant {
-  id        String                  @id @default(cuid())
-  sku       String
-  price     Float
-  productId String
-  product   Product                 @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  details   ProductVariantDetails[]
+  id            String                  @id @default(cuid())
+  sku           String
+  price         Float
+  productId     String
+  product       Product                 @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  details       ProductVariantDetails[]
+  inventoryLogs InventoryLog[]
+
+  @@unique([sku])
 }
 
 model ProductVariantDetails {
@@ -127,10 +130,32 @@ model ProductVariantDetails {
 }
 
 model Organization {
-  id           String        @id @default(cuid())
-  name         String        @unique
-  masterPin    String
-  users        User[]
-  products     Product[]
-  productTypes ProductType[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  masterPin     String
+  users         User[]
+  products      Product[]
+  productTypes  ProductType[]
+  inventoryLogs InventoryLog[]
+}
+
+enum InventoryLogActionType {
+  INCOMING
+  OUTGOING
+}
+
+model InventoryLog {
+  id                String                 @id @default(cuid())
+  transactionId     String
+  action            InventoryLogActionType
+  productVariantSku String
+  productVariant    ProductVariant         @relation(fields: [productVariantSku], references: [sku])
+  price             Float
+  quantity          Int
+  organizationId    String
+  organization      Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt         DateTime               @default(now())
+  isVoid            Boolean                @default(false)
+
+  @@index([transactionId, price, action, createdAt(sort: Desc)])
 }
