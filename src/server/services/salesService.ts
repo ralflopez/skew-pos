@@ -1,4 +1,4 @@
-import { type AddSaleInput } from "~/schema/saleInput";
+import { type GetAllSaleInput, type AddSaleInput } from "~/schema/saleInput";
 import { type Context } from "../api/trpc";
 import { getOrganizationId } from "./utils/contextHelpers";
 import { InventoryLogActionType, type Prisma } from "@prisma/client";
@@ -39,6 +39,33 @@ export const addSales = async (ctx: Context, { order }: AddSaleInput) => {
   return await ctx.prisma.inventoryLog.createMany({
     data,
   });
+};
+
+export const getAllSalesWithPagination = async (
+  ctx: Context,
+  { limit, page }: GetAllSaleInput
+) => {
+  const organizationId = getOrganizationId(ctx);
+  const result = await ctx.prisma.inventoryLog.groupBy({
+    by: ["transactionId", "createdAt"],
+    _sum: {
+      price: true,
+    },
+    where: {
+      action: InventoryLogActionType.OUTGOING,
+      organizationId,
+      isVoid: false,
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    skip: page === 1 ? 0 : (page - 1) * limit,
+  });
+
+  return result.map((r) => ({
+    transactionId: r.transactionId,
+    createdAt: r.createdAt,
+    total: r._sum.price,
+  }));
 };
 
 const getInvalidSKUQuantity = async (

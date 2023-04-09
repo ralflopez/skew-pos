@@ -14,5 +14,14 @@ export const AddSaleInputSchema = z.object({
 export type AddSaleInput = z.infer<typeof AddSaleInputSchema>;
 
 export type AddSaleInferredInput = inferProcedureInput<
-  AppRouter["sale"]["add"]
+  AppRouter["sales"]["add"]
+>;
+
+export const GetAllSaleInputSchema = z.object({
+  page: z.number().min(1),
+  limit: z.number().min(1),
+});
+export type GetAllSaleInput = z.infer<typeof GetAllSaleInputSchema>;
+export type GetAllSaleInferredInput = inferProcedureInput<
+  AppRouter["sales"]["getAll"]
 >;
