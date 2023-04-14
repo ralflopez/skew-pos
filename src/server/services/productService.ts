@@ -10,6 +10,11 @@ import {
   PRODUCT_ALREADY_EXISTS,
   PRODUCT_NOT_FOUND,
 } from "../exceptions/message";
+import {
+  ProductWithVariants,
+  ProductVariant,
+  ProductVariantDetail,
+} from "~/types/product";
 
 export const addProduct = async (
   ctx: Context,
@@ -38,18 +43,54 @@ export const addProduct = async (
   });
 };
 
-export const getAllProductsWithVariants = async (ctx: Context) => {
+export const getAllProductsWithVariants = async (
+  ctx: Context
+): Promise<ProductWithVariants[]> => {
   const organizationId = getOrganizationId(ctx);
 
-  return await ctx.prisma.product.findMany({
+  const result = await ctx.prisma.product.findMany({
     where: { organizationId },
     include: {
+      productType: true,
       variants: {
         include: {
-          details: true,
+          details: {
+            include: {
+              attribute: true,
+            },
+          },
+          product: true,
         },
       },
     },
+  });
+
+  return result.map((product) => {
+    return {
+      brand: product.brand,
+      id: product.id,
+      name: product.name,
+      productType: product.productType.name,
+      productTypeId: product.productType.id,
+      variants: product.variants.map((variant) => {
+        return {
+          id: variant.id,
+          price: variant.price,
+          productId: variant.productId,
+          sku: variant.sku,
+          product,
+          details: variant.details.map((detail) => {
+            return {
+              attribute: detail.attribute.name,
+              value:
+                detail.attribute.type === "NUMBER"
+                  ? detail.valueNumber || 0
+                  : detail.valueText || "",
+            };
+          }),
+        };
+      }),
+    };
   });
 };
 

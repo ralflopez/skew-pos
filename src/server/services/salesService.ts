@@ -68,6 +68,16 @@ export const getAllSalesWithPagination = async (
   }));
 };
 
+export const voidSales = async (ctx: Context, transactionId: string) => {
+  const organizationId = getOrganizationId(ctx);
+  return ctx.prisma.inventoryLog.updateMany({
+    data: {
+      isVoid: true,
+    },
+    where: { transactionId, organizationId },
+  });
+};
+
 const getInvalidSKUQuantity = async (
   ctx: Context,
   organizationId: string,
