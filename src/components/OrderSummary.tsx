@@ -12,6 +12,7 @@ import { useAtomValue } from "jotai";
 import React from "react";
 import { orderAtom } from "./posStates";
 import { OrderItem } from "./OrderItem";
+import { currencyFormatter } from "~/config/formatter";
 
 export const OrderSummary = () => {
   const orders = useAtomValue(orderAtom);
@@ -40,11 +41,12 @@ export const OrderSummary = () => {
         <Flex justify="space-between" align="center">
           <Text fw="bold">Total</Text>
           <Text fw="bold">
-            P
-            {orders.reduce(
-              (acc, order) =>
-                (acc += order.quantity * order.productVariant.price),
-              0
+            {currencyFormatter.format(
+              orders.reduce(
+                (acc, order) =>
+                  (acc += order.quantity * order.productVariant.price),
+                0
+              )
             )}
           </Text>
         </Flex>

@@ -3,6 +3,7 @@ import { Box, Button, Card, Text, Flex } from "@mantine/core";
 import { type ProductVariant } from "~/types/product";
 import { useAtomValue, useSetAtom } from "jotai";
 import { orderAtom } from "./posStates";
+import { currencyFormatter } from "~/config/formatter";
 
 interface Props {
   productVariant: ProductVariant;
@@ -83,6 +84,7 @@ export const ProductCard = ({ productVariant }: Props) => {
               )?.value
             }
           </Text>
+          <Text>{currencyFormatter.format(productVariant.price)}</Text>
         </Box>
         <Flex gap="xs" direction="column" align="center">
           <Button variant="default" onClick={increment}>

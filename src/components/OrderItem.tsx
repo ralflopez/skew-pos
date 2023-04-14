@@ -1,6 +1,7 @@
 import React from "react";
 import { type Order } from "~/types/product";
 import { Box, Flex, Text } from "@mantine/core";
+import { currencyFormatter } from "~/config/formatter";
 
 interface Props {
   order: Order;
@@ -23,7 +24,9 @@ export const OrderItem = ({ order: { productVariant, quantity } }: Props) => {
           x{quantity}
         </Text>
       </Flex>
-      <Text mr="sm">P{(productVariant.price || 0) * quantity}</Text>
+      <Text mr="sm">
+        {currencyFormatter.format((productVariant.price || 0) * quantity)}
+      </Text>
     </Flex>
   );
 };
